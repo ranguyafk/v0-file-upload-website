@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -9,8 +8,6 @@ import { BottomNav } from "@/components/bottom-nav"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { OnboardingFlow } from "@/components/onboarding-flow"
 import "./globals.css"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "FileDrop - Secure File Sharing | Upload & Share Files Instantly",
