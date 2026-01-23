@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .eq("user_id", user.id)
       .order("name", { ascending: true })
 
-    if (parentId === "null" || !parentId) {
+    if (!parentId || parentId === "null") {
       query = query.is("parent_id", null)
     } else {
       query = query.eq("parent_id", parentId)

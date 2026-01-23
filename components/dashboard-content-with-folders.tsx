@@ -87,6 +87,7 @@ export function DashboardContentWithFolders({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null)
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null)
   const [folders, setFolders] = useState<Folder[]>([])
@@ -209,14 +210,14 @@ export function DashboardContentWithFolders({
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || "Failed to delete folder")
+        setError(data.error || "Failed to delete folder")
         return
       }
 
       await fetchFolders()
     } catch (error) {
       console.error("Delete folder error:", error)
-      alert("Failed to delete folder")
+      setError("Failed to delete folder")
     } finally {
       setDeletingFolderId(null)
     }
@@ -349,6 +350,14 @@ export function DashboardContentWithFolders({
 
         {/* Files and Folders */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {error && (
+            <div className="bg-destructive/10 border-b border-destructive/20 p-4 text-destructive text-sm flex items-center justify-between">
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="text-destructive hover:text-destructive/80">
+                ✕
+              </button>
+            </div>
+          )}
           <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
             <div className="flex-1">
               <h2 className="font-semibold text-sm md:text-base text-foreground mb-1">

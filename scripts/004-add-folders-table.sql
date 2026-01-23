@@ -18,16 +18,16 @@ ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 
 -- Folders policies - users can only see their own folders
 CREATE POLICY "Users can view own folders" ON folders
-  FOR SELECT USING (auth.uid() = user_id OR user_id IS NULL);
+  FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own folders" ON folders
-  FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own folders" ON folders
-  FOR UPDATE USING (auth.uid() = user_id OR user_id IS NULL);
+  FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own folders" ON folders
-  FOR DELETE USING (auth.uid() = user_id OR user_id IS NULL);
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Add folder_id column to files table
 ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES folders(id) ON DELETE SET NULL;
