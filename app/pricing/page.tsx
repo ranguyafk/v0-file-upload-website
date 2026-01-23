@@ -19,7 +19,7 @@ export default function PricingPage() {
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
               Simple, Transparent <span className="text-primary">Pricing</span>
             </h1>
-            <p className="text-lg text-muted-foreground">Start for free. Upgrade when you need more power.</p>
+            <p className="text-lg text-muted-foreground">Start with 50GB free - 10x more than iCloud. Upgrade when you need more power.</p>
           </div>
         </div>
       </section>
@@ -39,13 +39,15 @@ export default function PricingPage() {
               <span className="text-4xl font-bold text-foreground">$0</span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-muted-foreground mb-6">Perfect for personal use and trying things out.</p>
+            <p className="text-muted-foreground mb-6">Perfect for personal use. Better than iCloud's 5GB free tier.</p>
             <ul className="space-y-3 mb-8 flex-1">
+              <PricingFeature>50GB total storage</PricingFeature>
               <PricingFeature>Up to 500MB per file</PricingFeature>
-              <PricingFeature>5 uploads per day</PricingFeature>
+              <PricingFeature>Unlimited uploads</PricingFeature>
               <PricingFeature>Files expire after 7 days max</PricingFeature>
               <PricingFeature>Password protection</PricingFeature>
               <PricingFeature>Basic analytics</PricingFeature>
+              <PricingFeature>Folder organization</PricingFeature>
             </ul>
             <Button asChild variant="outline" className="w-full bg-transparent">
               <Link href="/">Get Started</Link>
@@ -67,13 +69,15 @@ export default function PricingPage() {
               <span className="text-4xl font-bold text-foreground">$9</span>
               <span className="text-muted-foreground">/month</span>
             </div>
-            <p className="text-muted-foreground mb-6">For creators and professionals who share often.</p>
+            <p className="text-muted-foreground mb-6">For creators and professionals. Unlimited storage and uploads.</p>
             <ul className="space-y-3 mb-8 flex-1">
+              <PricingFeature>Unlimited storage</PricingFeature>
               <PricingFeature>Up to 2GB per file</PricingFeature>
               <PricingFeature>Unlimited uploads</PricingFeature>
               <PricingFeature>Files never expire (optional)</PricingFeature>
               <PricingFeature>Password protection</PricingFeature>
               <PricingFeature>Advanced analytics</PricingFeature>
+              <PricingFeature>Folder organization</PricingFeature>
               <PricingFeature>Priority support</PricingFeature>
               <PricingFeature>Custom branding</PricingFeature>
             </ul>
@@ -93,12 +97,14 @@ export default function PricingPage() {
             <div className="mb-6">
               <span className="text-4xl font-bold text-foreground">Custom</span>
             </div>
-            <p className="text-muted-foreground mb-6">For teams and businesses with custom needs.</p>
+            <p className="text-muted-foreground mb-6">For teams and businesses. Everything in Pro, plus enterprise features.</p>
             <ul className="space-y-3 mb-8 flex-1">
+              <PricingFeature>Unlimited storage</PricingFeature>
               <PricingFeature>Up to 10GB per file</PricingFeature>
               <PricingFeature>Unlimited everything</PricingFeature>
               <PricingFeature>Custom domain</PricingFeature>
               <PricingFeature>Team management</PricingFeature>
+              <PricingFeature>Folder organization</PricingFeature>
               <PricingFeature>API access</PricingFeature>
               <PricingFeature>SSO integration</PricingFeature>
               <PricingFeature>Dedicated support</PricingFeature>
@@ -107,6 +113,42 @@ export default function PricingPage() {
             <Button asChild variant="outline" className="w-full bg-transparent">
               <Link href="/contact">Contact Sales</Link>
             </Button>
+          </div>
+        </div>
+
+        {/* Comparison with iCloud */}
+        <div className="mt-16 max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-foreground mb-4 text-center">Why Choose Us Over iCloud?</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-card/50 backdrop-blur rounded-xl p-6 border border-border">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-muted-foreground mb-2">iCloud Free</p>
+                  <p className="text-4xl font-bold text-muted-foreground">5GB</p>
+                </div>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>✗ Limited storage</li>
+                  <li>✗ Apple ecosystem only</li>
+                  <li>✗ No custom URLs</li>
+                  <li>✗ Limited sharing options</li>
+                </ul>
+              </div>
+              <div className="bg-primary/10 backdrop-blur rounded-xl p-6 border-2 border-primary">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-primary mb-2">FileDrop Free</p>
+                  <p className="text-4xl font-bold text-primary">50GB</p>
+                </div>
+                <ul className="space-y-2 text-sm text-foreground">
+                  <li>✓ 10x more storage</li>
+                  <li>✓ Works everywhere</li>
+                  <li>✓ Custom URLs included</li>
+                  <li>✓ Advanced sharing features</li>
+                </ul>
+              </div>
+            </div>
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              No credit card required. Start with 50GB free today.
+            </p>
           </div>
         </div>
       </section>

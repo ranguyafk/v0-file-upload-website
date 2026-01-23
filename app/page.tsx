@@ -17,13 +17,13 @@ export default function Home() {
           <div className="text-center space-y-4 md:space-y-6 mb-8 md:mb-12">
             <div className="inline-flex items-center gap-2 bg-primary/15 text-primary border border-primary/20 px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium animate-in fade-in">
               <Star className="w-3 h-3 md:w-4 md:h-4" />
-              100% Free to Use
+              50GB Free Storage - 10x More Than iCloud
             </div>
             <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-foreground tracking-tight text-balance px-4 animate-in slide-in-from-bottom-4">
               Share Files <span className="text-primary">Instantly</span>
             </h1>
             <p className="text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty px-4 animate-in slide-in-from-bottom-4 delay-100">
-              Upload up to 1GB. Get a custom link. Set a password. Choose when it expires. It's that simple.
+              Get 50GB free storage with file uploads up to 1GB. Custom links, password protection, and auto-expiration included. No credit card required.
             </p>
           </div>
 
@@ -36,7 +36,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h2 className="font-bold text-lg md:text-xl text-foreground">Upload a File</h2>
-                  <p className="text-sm text-muted-foreground">Share files up to 1GB</p>
+                  <p className="text-sm text-muted-foreground">50GB free • Up to 1GB per file</p>
                 </div>
               </div>
               <UploadForm />
@@ -119,10 +119,10 @@ export default function Home() {
       <section className="border-t border-border bg-gradient-to-br from-primary/5 to-accent/5">
         <div className="container mx-auto px-4 py-12 md:py-16 lg:py-20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto text-center">
+            <StatCard value="50 GB" label="Free Storage" />
             <StatCard value="1 GB" label="Max File Size" />
-            <StatCard value="100%" label="Free Forever" />
-            <StatCard value="256-bit" label="Encryption" />
-            <StatCard value="99.9%" label="Uptime" />
+            <StatCard value="10x" label="More Than iCloud" />
+            <StatCard value="$0" label="To Get Started" />
           </div>
         </div>
       </section>
@@ -133,7 +133,7 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4 px-4">Ready to Share?</h2>
             <p className="text-base md:text-lg text-muted-foreground mb-6 md:mb-8 px-4">
-              Create an account to unlock more features and manage all your files in one place.
+              Start with 50GB free storage - no credit card required. Need more? Upgrade to Pro for unlimited storage and advanced features.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 px-4">
               <Button asChild size="lg" className="w-full sm:w-auto h-12 md:h-12 px-6 md:px-8 touch-target active-scale">
