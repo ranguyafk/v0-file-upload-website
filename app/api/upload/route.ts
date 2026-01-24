@@ -11,6 +11,17 @@ const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error("Missing Supabase environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("Missing Vercel Blob storage token")
+      return NextResponse.json({ error: "Storage service not configured" }, { status: 500 })
+    }
+
     const ip = request.headers.get("x-forwarded-for") || "unknown"
 
     // Rate limiting
@@ -39,6 +50,14 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    if (!file.name || file.name.trim().length === 0) {
+      return NextResponse.json({ error: "File must have a valid name" }, { status: 400 })
+    }
+
+    if (file.size === 0) {
+      return NextResponse.json({ error: "File is empty" }, { status: 400 })
     }
 
     if (file.size > MAX_FILE_SIZE) {
@@ -72,19 +91,41 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (folderError || !folder) {
-        console.error("Folder validation error:", folderError)
+        console.error("Folder validation error:", {
+          error: folderError,
+          code: folderError?.code,
+          message: folderError?.message,
+          folderId,
+          userId: user.id,
+        })
         return NextResponse.json({ error: "Invalid folder or folder not found" }, { status: 400 })
       }
     }
 
     // Check if slug is taken
-    const { data: existing } = await supabase.from("files").select("id").eq("slug", slug).single()
+    const { data: existing, error: slugError } = await supabase.from("files").select("id").eq("slug", slug).single()
+
+    if (slugError && slugError.code !== "PGRST116") {
+      // PGRST116 is "not found" which is expected
+      console.error("Slug check error:", {
+        error: slugError,
+        slug,
+      })
+    }
 
     if (existing) {
       if (customSlug) {
         return NextResponse.json({ error: "This custom URL is already taken." }, { status: 409 })
       }
+      // Generate a new random slug to avoid collision
       slug = generateSlug(12)
+      
+      // Verify new slug is also unique
+      const { data: existingRetry } = await supabase.from("files").select("id").eq("slug", slug).single()
+      if (existingRetry) {
+        // Very rare case - try one more time with longer slug
+        slug = generateSlug(16)
+      }
     }
 
     // Upload to Vercel Blob

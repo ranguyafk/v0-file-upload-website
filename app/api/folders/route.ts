@@ -5,6 +5,12 @@ import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
 // GET - List folders for a user
 export async function GET(request: NextRequest) {
   try {
+    // Validate required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error("Missing Supabase environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
     const supabase = await createClient()
     const {
       data: { user },
@@ -57,6 +63,12 @@ export async function GET(request: NextRequest) {
 // POST - Create a new folder
 export async function POST(request: NextRequest) {
   try {
+    // Validate required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error("Missing Supabase environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
     const supabase = await createClient()
     const {
       data: { user },
