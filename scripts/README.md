@@ -1,10 +1,32 @@
 # Database Migration Instructions
 
+## Quick Start - Automated Check
+
+To check your current migration status, you can:
+
+1. **Via API Endpoint:** Visit `/api/health/migrations` in your browser
+   - Authenticated admins will see detailed migration information
+   - Non-authenticated users will see a simplified status
+
+2. **Via CLI Script:** Run the migration helper script
+   ```bash
+   node scripts/run-migrations.js
+   ```
+   This will check the current status and provide SQL for manual execution.
+
 ## Issue: Missing folder_id Column
 
 If you're seeing the error: `"Failed to save file metadata: Could not find the 'folder_id' column of 'files' in the schema cache"`, it means the database migrations haven't been fully applied.
 
 ## Solution: Apply Database Migrations
+
+### Quick Diagnosis
+
+First, check which migrations are missing:
+- **Visit:** `https://your-app.com/api/health/migrations`
+- **Or run:** `node scripts/run-migrations.js`
+
+This will tell you exactly which migrations need to be applied.
 
 ### Option 1: Using Supabase Dashboard (Recommended)
 
@@ -41,6 +63,36 @@ Connect to your Supabase database using any PostgreSQL client and run:
 
 -- From scripts/005-ensure-folder-id-column.sql  
 -- Ensures folder_id column exists and is properly indexed
+```
+
+## Automated Schema Verification
+
+The application now includes **automatic schema verification** that:
+- Checks if required columns exist before file uploads and folder operations
+- Returns user-friendly error messages for end users
+- Provides detailed migration instructions for administrators
+- Logs diagnostic information to help troubleshoot issues
+
+### Error Message Format
+
+**For End Users:**
+```
+Unable to save file due to database schema issues. Please contact the administrator.
+```
+
+**For Administrators (in logs and API responses):**
+```
+The database schema is not up-to-date. This may cause errors when uploading files or creating folders.
+
+Missing migrations:
+- 004-add-folders-table: Creates folders table and adds folder_id to files
+
+If you're an administrator:
+1. Navigate to your Supabase Dashboard SQL Editor
+2. Run the migration scripts in order from the /scripts directory
+3. Restart the application
+
+Check /api/health/migrations for current status.
 ```
 
 ## Verification
