@@ -56,6 +56,15 @@ const REQUIRED_MIGRATIONS: MigrationStatus[] = [
   },
 ]
 
+// Migration indices for readability
+const MIGRATION_INDEX = {
+  CREATE_FILES_TABLE: 0,
+  ADD_TITLE_AND_VIEWS: 1,
+  ADD_USERS_AND_AUTH: 2,
+  ADD_FOLDERS_TABLE: 3,
+  ENSURE_FOLDER_ID: 4,
+} as const
+
 /**
  * Check if a table exists in the database
  */
@@ -100,11 +109,11 @@ export async function checkMigrationStatus(
   try {
     // Check 001-create-files-table
     const filesTableExists = await checkTableExists(supabase, "files")
-    migrations[0].isApplied = filesTableExists
+    migrations[MIGRATION_INDEX.CREATE_FILES_TABLE].isApplied = filesTableExists
     if (filesTableExists) {
-      appliedMigrations.push(migrations[0])
+      appliedMigrations.push(migrations[MIGRATION_INDEX.CREATE_FILES_TABLE])
     } else {
-      missingMigrations.push(migrations[0])
+      missingMigrations.push(migrations[MIGRATION_INDEX.CREATE_FILES_TABLE])
     }
 
     // Check 002-add-title-and-views
@@ -113,15 +122,15 @@ export async function checkMigrationStatus(
       const hasViewCountColumn = await checkColumnExists(supabase, "files", "view_count")
       const hasOwnerTokenColumn = await checkColumnExists(supabase, "files", "owner_token")
       
-      migrations[1].isApplied = hasTitleColumn && hasViewCountColumn && hasOwnerTokenColumn
-      if (migrations[1].isApplied) {
-        appliedMigrations.push(migrations[1])
+      migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS].isApplied = hasTitleColumn && hasViewCountColumn && hasOwnerTokenColumn
+      if (migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS].isApplied) {
+        appliedMigrations.push(migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS])
       } else {
-        missingMigrations.push(migrations[1])
+        missingMigrations.push(migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS])
       }
     } else {
-      migrations[1].isApplied = false
-      missingMigrations.push(migrations[1])
+      migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS].isApplied = false
+      missingMigrations.push(migrations[MIGRATION_INDEX.ADD_TITLE_AND_VIEWS])
     }
 
     // Check 003-add-users-and-auth
@@ -129,15 +138,15 @@ export async function checkMigrationStatus(
       const hasUserIdColumn = await checkColumnExists(supabase, "files", "user_id")
       const profilesTableExists = await checkTableExists(supabase, "profiles")
       
-      migrations[2].isApplied = hasUserIdColumn && profilesTableExists
-      if (migrations[2].isApplied) {
-        appliedMigrations.push(migrations[2])
+      migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH].isApplied = hasUserIdColumn && profilesTableExists
+      if (migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH].isApplied) {
+        appliedMigrations.push(migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH])
       } else {
-        missingMigrations.push(migrations[2])
+        missingMigrations.push(migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH])
       }
     } else {
-      migrations[2].isApplied = false
-      missingMigrations.push(migrations[2])
+      migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH].isApplied = false
+      missingMigrations.push(migrations[MIGRATION_INDEX.ADD_USERS_AND_AUTH])
     }
 
     // Check 004-add-folders-table
@@ -145,26 +154,26 @@ export async function checkMigrationStatus(
       const foldersTableExists = await checkTableExists(supabase, "folders")
       const hasFolderIdColumn = await checkColumnExists(supabase, "files", "folder_id")
       
-      migrations[3].isApplied = foldersTableExists && hasFolderIdColumn
-      if (migrations[3].isApplied) {
-        appliedMigrations.push(migrations[3])
+      migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE].isApplied = foldersTableExists && hasFolderIdColumn
+      if (migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE].isApplied) {
+        appliedMigrations.push(migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE])
       } else {
-        missingMigrations.push(migrations[3])
+        missingMigrations.push(migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE])
       }
     } else {
-      migrations[3].isApplied = false
-      missingMigrations.push(migrations[3])
+      migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE].isApplied = false
+      missingMigrations.push(migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE])
     }
 
     // Check 005-ensure-folder-id-column (optional validation)
     // This migration is essentially a verification of migration 004
     // It doesn't add new functionality, just validates that folder_id exists
     // We mark it as applied if migration 004 is applied, since they're dependent
-    migrations[4].isApplied = migrations[3].isApplied
-    if (migrations[4].isApplied) {
-      appliedMigrations.push(migrations[4])
+    migrations[MIGRATION_INDEX.ENSURE_FOLDER_ID].isApplied = migrations[MIGRATION_INDEX.ADD_FOLDERS_TABLE].isApplied
+    if (migrations[MIGRATION_INDEX.ENSURE_FOLDER_ID].isApplied) {
+      appliedMigrations.push(migrations[MIGRATION_INDEX.ENSURE_FOLDER_ID])
     } else {
-      missingMigrations.push(migrations[4])
+      missingMigrations.push(migrations[MIGRATION_INDEX.ENSURE_FOLDER_ID])
     }
 
     const criticalMissing = missingMigrations.filter((m) => m.critical)

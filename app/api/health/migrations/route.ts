@@ -28,9 +28,13 @@ export async function GET(request: NextRequest) {
     const migrationStatus = await checkMigrationStatus(supabase)
 
     // Get user for admin check
-    // Note: This is a simple check - in production, you may want to implement
-    // proper role-based access control to restrict detailed migration info
-    // to users with specific admin roles
+    // Note: This is a simple authentication check. In production environments,
+    // you should implement proper role-based access control (RBAC) to restrict
+    // detailed migration information to users with specific admin roles.
+    // For example:
+    // - Check user roles from a profiles table
+    // - Use Supabase RLS policies to control access
+    // - Implement middleware to verify admin permissions
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -38,6 +42,7 @@ export async function GET(request: NextRequest) {
     // Return different levels of detail based on authentication
     // Authenticated users get detailed info (assumes they are admins/developers)
     // Public users get simplified message
+    // TODO: Replace with proper RBAC check in production
     const isAdmin = !!user
 
     if (migrationStatus.allApplied) {

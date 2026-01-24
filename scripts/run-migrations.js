@@ -31,7 +31,7 @@ try {
 }
 
 // Configuration
-const MIGRATIONS_DIR = path.join(__dirname);
+const SCRIPTS_DIR = path.join(__dirname);
 const MIGRATIONS = [
   '001-create-files-table.sql',
   '002-add-title-and-views.sql',
@@ -44,7 +44,7 @@ const MIGRATIONS = [
  * Read SQL file content
  */
 async function readSQLFile(filename) {
-  const filePath = path.join(MIGRATIONS_DIR, filename);
+  const filePath = path.join(SCRIPTS_DIR, filename);
   try {
     const content = await fs.readFile(filePath, 'utf8');
     return content;
