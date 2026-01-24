@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit"
 import { hashPassword } from "@/lib/utils/password"
 import { generateSlug, isValidSlug } from "@/lib/utils/slug"
 import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
+import { checkColumnExists, getSchemaErrorMessage } from "@/lib/schema-verification"
 import { randomBytes } from "crypto"
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB
@@ -74,6 +75,20 @@ export async function POST(request: NextRequest) {
     let slug = customSlug?.trim() || generateSlug()
 
     const supabase = await createClient()
+
+    // Verify schema before proceeding
+    if (folderId) {
+      const folderIdColumnExists = await checkColumnExists(supabase, "files", "folder_id")
+      if (!folderIdColumnExists) {
+        console.error("Schema validation failed: folder_id column missing from files table")
+        return NextResponse.json(
+          {
+            error: getSchemaErrorMessage(["folder_id"]),
+          },
+          { status: 500 },
+        )
+      }
+    }
 
     const {
       data: { user },
@@ -214,6 +229,18 @@ export async function POST(request: NextRequest) {
         userId: user?.id,
         folderId,
       })
+
+      // Check for schema-related errors
+      const errorMessage = dbError.message.toLowerCase()
+      if (errorMessage.includes("folder_id") && errorMessage.includes("column")) {
+        return NextResponse.json(
+          {
+            error: getSchemaErrorMessage(["folder_id"]),
+          },
+          { status: 500 },
+        )
+      }
+
       return NextResponse.json(
         { error: `Failed to save file metadata: ${dbError.message || "Unknown database error"}` },
         { status: 500 },
