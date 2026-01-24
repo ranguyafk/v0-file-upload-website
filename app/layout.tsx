@@ -7,6 +7,7 @@ import { InstallPrompt } from "@/components/install-prompt"
 import { BottomNav } from "@/components/bottom-nav"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { OnboardingFlow } from "@/components/onboarding-flow"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -61,6 +62,7 @@ export default function RootLayout({
         <BottomNav />
         <InstallPrompt />
         <OnboardingFlow />
+        <Toaster position="top-center" />
         <Analytics />
       </body>
     </html>
