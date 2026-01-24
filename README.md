@@ -5,6 +5,9 @@
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ranguyafks-projects/v0-file-upload-website)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/k25Otlj0xjZ)
 
+> **⚠️ Important Update (January 2026):**  
+> The folder/album system has been removed to restore reliability and simplify the application. FileDrop now operates as a simple, root-only file upload and listing experience. See [FOLDER_SYSTEM_REMOVED.md](FOLDER_SYSTEM_REMOVED.md) for details.
+
 ## Overview
 
 FileDrop is a modern, mobile-first Progressive Web App (PWA) for secure file sharing. Upload files up to 1GB with custom URLs, password protection, and auto-expiration features. The app is designed to compete with services like iCloud while emphasizing simplicity, ease of navigation, and performance for mobile users.
@@ -102,18 +105,6 @@ Users can install FileDrop on:
 
 ## 🚀 Getting Started
 
-### Database Setup
-
-**Important:** Before running the application, ensure all database migrations are applied.
-
-1. Check migration status:
-   ```bash
-   node scripts/run-migrations.js
-   ```
-   or visit `/api/health/migrations` after starting the app
-
-2. If migrations are missing, follow the instructions in `/scripts/README.md` or `MIGRATION_RESOLUTION.md`
-
 ### Installation
 
 1. Clone the repository:
@@ -133,21 +124,18 @@ cp .env.example .env.local
 # Add your Supabase and Vercel Blob credentials
 ```
 
-4. Apply database migrations (see Database Setup section above or `/scripts/README.md`)
-
-5. Run the development server:
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-### Troubleshooting
+### Database Setup
 
-If you encounter errors related to database schema:
-- Check `/api/health/migrations` for migration status
-- See `MIGRATION_RESOLUTION.md` for detailed resolution steps
-- See `TROUBLESHOOTING.md` for common issues
+**Note:** As of January 2026, the folder system has been removed. No database migrations are required for basic functionality. The application works with or without the `folder_id` column in the `files` table.
+
+If you need to run migrations for other features, see `/scripts/README.md`.
 
 ## 📦 Build for Production
 
