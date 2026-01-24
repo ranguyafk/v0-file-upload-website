@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { isValidUUID } from "@/lib/utils/validation"
+import { checkColumnExists, getSchemaErrorMessage } from "@/lib/schema-verification"
 
 // POST - Move file to folder
 export async function POST(request: NextRequest) {
@@ -12,6 +13,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Verify schema before proceeding
+    const folderIdColumnExists = await checkColumnExists(supabase, "files", "folder_id")
+    if (!folderIdColumnExists) {
+      console.error("Schema validation failed: folder_id column missing from files table")
+      return NextResponse.json(
+        {
+          error: getSchemaErrorMessage(["folder_id"]),
+        },
+        { status: 500 },
+      )
     }
 
     let body
@@ -99,6 +112,18 @@ export async function POST(request: NextRequest) {
         folderId: folder_id,
         userId: user.id,
       })
+
+      // Check for schema-related errors
+      const errorMessage = error.message.toLowerCase()
+      if (errorMessage.includes("folder_id") && errorMessage.includes("column")) {
+        return NextResponse.json(
+          {
+            error: getSchemaErrorMessage(["folder_id"]),
+          },
+          { status: 500 },
+        )
+      }
+
       return NextResponse.json(
         { error: `Failed to move file: ${error.message || "Unknown database error"}` },
         { status: 500 },

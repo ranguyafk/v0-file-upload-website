@@ -187,6 +187,22 @@ To verify environment variables are set:
 
 ## Database Schema
 
+### Schema Verification
+
+The application now includes **automatic schema verification** that checks if required database columns exist before performing operations. This helps identify when database migrations haven't been applied.
+
+**If you see schema-related errors:**
+1. The error message will tell you which columns are missing
+2. Follow the migration instructions in `/scripts/README.md`
+3. Run the required migration scripts in your Supabase dashboard
+4. Restart your application
+
+**Schema error format:**
+```
+Database schema is outdated. Missing columns: folder_id. 
+Please ensure all database migrations have been applied.
+```
+
 ### Folders Table
 ```sql
 folders (
@@ -218,6 +234,21 @@ files (
 ```
 
 ## Common Solutions
+
+### Issue: "Could not find the 'folder_id' column of 'files' in the schema cache"
+**Solution:** 
+1. This means database migrations haven't been applied
+2. Follow instructions in `/scripts/README.md`
+3. Run migration script `004-add-folders-table.sql` in Supabase dashboard
+4. Verify with `005-ensure-folder-id-column.sql`
+5. Restart your application
+
+### Issue: "Database schema is outdated. Missing columns: ..."
+**Solution:**
+1. Check which columns are missing from the error message
+2. Review migration scripts in `/scripts` directory
+3. Apply missing migrations in order (001, 002, 003, 004)
+4. Restart your application
 
 ### Issue: "Server configuration error"
 **Solution:** Verify environment variables are set correctly in your deployment
