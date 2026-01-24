@@ -15,10 +15,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if profile already exists
-    const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", user.id).single()
+    const { data: existingProfile, error: checkError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single()
 
     if (existingProfile) {
       return NextResponse.json({ message: "Profile already exists" })
+    }
+
+    // Log if check had an error (other than not found)
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("Profile check error:", checkError)
     }
 
     // Create profile

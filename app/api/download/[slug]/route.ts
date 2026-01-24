@@ -30,7 +30,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Check password if required
     if (file.password_hash) {
-      const body = await request.json().catch(() => ({}))
+      let body
+      try {
+        body = await request.json()
+      } catch (error) {
+        console.error("Invalid JSON in download request (password required):", error)
+        return NextResponse.json({ error: "Invalid request format", requiresPassword: true }, { status: 400 })
+      }
       const password = body.password
 
       if (!password) {

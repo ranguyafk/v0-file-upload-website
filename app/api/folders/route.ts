@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
 
 // GET - List folders for a user
 export async function GET(request: NextRequest) {
@@ -54,7 +55,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (error) {
+      console.error("Invalid JSON in folder creation request:", error)
+      return NextResponse.json({ error: "Invalid request format" }, { status: 400 })
+    }
     const { name, parent_id } = body
 
     if (!name || name.trim().length === 0) {
@@ -65,10 +72,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Folder name too long" }, { status: 400 })
     }
 
+    // Validate parent_id format if provided
+    if (parent_id && !isValidUUID(parent_id)) {
+      return NextResponse.json({ error: "Invalid parent folder ID format" }, { status: 400 })
+    }
+
+    // If parent_id is provided, verify it exists and belongs to user
+    if (parent_id) {
+      const { data: parentFolder, error: parentError } = await supabase
+        .from("folders")
+        .select("id, user_id")
+        .eq("id", parent_id)
+        .eq("user_id", user.id)
+        .single()
+
+      if (parentError || !parentFolder) {
+        console.error("Parent folder validation error:", parentError)
+        return NextResponse.json({ error: "Invalid parent folder or parent folder not found" }, { status: 400 })
+      }
+    }
+
     const { data: folder, error } = await supabase
       .from("folders")
       .insert({
-        name: name.trim(),
+        name: sanitizeString(name),
         user_id: user.id,
         parent_id: parent_id || null,
       })

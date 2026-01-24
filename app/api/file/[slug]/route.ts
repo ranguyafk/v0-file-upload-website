@@ -51,7 +51,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (error) {
+      console.error("Invalid JSON in file delete request:", error)
+      return NextResponse.json({ error: "Invalid request format" }, { status: 400 })
+    }
     const { token } = body
 
     if (!token) {

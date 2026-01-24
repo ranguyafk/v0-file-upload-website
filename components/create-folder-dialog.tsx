@@ -35,17 +35,28 @@ export function CreateFolderDialog({ open, onOpenChange, onFolderCreated, parent
         body: JSON.stringify({ name: folderName.trim(), parent_id: parentId }),
       })
 
-      const data = await response.json()
+      const text = await response.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (parseError) {
+        console.error("Failed to parse server response:", parseError, "Response:", text)
+        throw new Error("Invalid server response. Please try again.")
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create folder")
+        const errorMsg = data.error || `Failed to create folder (${response.status})`
+        console.error("Folder creation failed:", { status: response.status, error: errorMsg })
+        throw new Error(errorMsg)
       }
 
       setFolderName("")
       onOpenChange(false)
       onFolderCreated()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create folder")
+      const errorMsg = err instanceof Error ? err.message : "Failed to create folder"
+      console.error("Folder creation error:", err)
+      setError(errorMsg)
     } finally {
       setCreating(false)
     }
