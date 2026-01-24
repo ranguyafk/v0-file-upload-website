@@ -102,6 +102,20 @@ Users can install FileDrop on:
 
 ## 🚀 Getting Started
 
+### Database Setup
+
+**Important:** Before running the application, ensure all database migrations are applied.
+
+1. Check migration status:
+   ```bash
+   node scripts/run-migrations.js
+   ```
+   or visit `/api/health/migrations` after starting the app
+
+2. If migrations are missing, follow the instructions in `/scripts/README.md` or `MIGRATION_RESOLUTION.md`
+
+### Installation
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/ranguyafk/v0-file-upload-website.git
@@ -119,12 +133,21 @@ cp .env.example .env.local
 # Add your Supabase and Vercel Blob credentials
 ```
 
-4. Run the development server:
+4. Apply database migrations (see Database Setup section above or `/scripts/README.md`)
+
+5. Run the development server:
 ```bash
 npm run dev
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Troubleshooting
+
+If you encounter errors related to database schema:
+- Check `/api/health/migrations` for migration status
+- See `MIGRATION_RESOLUTION.md` for detailed resolution steps
+- See `TROUBLESHOOTING.md` for common issues
 
 ## 📦 Build for Production
 
