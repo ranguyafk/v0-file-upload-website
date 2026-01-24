@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   // Get user profile
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
-  // Get user's files (all files, no folder filtering)
+  // Get all user files (folder filtering removed as part of folder system deprecation)
   const { data: files } = await supabase
     .from("files")
     .select("*")

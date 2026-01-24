@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       error,
       message: error instanceof Error ? error.message : "Unknown error",
     })
-    // Return empty array even on error to prevent UI breakage
+    // Return empty array even on error to prevent UI breakage.
     return NextResponse.json({ folders: [] })
   }
 }
