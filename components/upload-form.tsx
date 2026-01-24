@@ -108,12 +108,15 @@ export function UploadForm() {
       let data
       try {
         data = JSON.parse(text)
-      } catch {
-        throw new Error("Server error. Please try again.")
+      } catch (parseError) {
+        console.error("Failed to parse server response:", parseError, "Response:", text)
+        throw new Error("Invalid server response. Please try again.")
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed")
+        const errorMsg = data.error || `Upload failed with status ${response.status}`
+        console.error("Upload failed:", { status: response.status, error: errorMsg })
+        throw new Error(errorMsg)
       }
 
       setResult(data)
@@ -123,7 +126,9 @@ export function UploadForm() {
       setPassword("")
       setExpiry("never")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed")
+      const errorMsg = err instanceof Error ? err.message : "Upload failed"
+      console.error("Upload error:", err)
+      setError(errorMsg)
     } finally {
       setUploading(false)
       setProgress(0)

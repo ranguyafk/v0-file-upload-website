@@ -21,7 +21,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const formData = await request.formData()
+    let formData
+    try {
+      formData = await request.formData()
+    } catch (error) {
+      console.error("Invalid FormData in upload request:", error)
+      return NextResponse.json({ error: "Invalid request format" }, { status: 400 })
+    }
     const file = formData.get("file") as File
     const title = formData.get("title") as string | null
     const customSlug = formData.get("slug") as string | null
@@ -48,6 +54,21 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+
+    // If folder_id is provided, verify it exists and belongs to user
+    if (folderId && user) {
+      const { data: folder, error: folderError } = await supabase
+        .from("folders")
+        .select("id, user_id")
+        .eq("id", folderId)
+        .eq("user_id", user.id)
+        .single()
+
+      if (folderError || !folder) {
+        console.error("Folder validation error:", folderError)
+        return NextResponse.json({ error: "Invalid folder or folder not found" }, { status: 400 })
+      }
+    }
 
     // Check if slug is taken
     const { data: existing } = await supabase.from("files").select("id").eq("slug", slug).single()
