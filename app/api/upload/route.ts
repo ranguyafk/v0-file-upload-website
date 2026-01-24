@@ -117,14 +117,25 @@ export async function POST(request: NextRequest) {
       if (customSlug) {
         return NextResponse.json({ error: "This custom URL is already taken." }, { status: 409 })
       }
-      // Generate a new random slug to avoid collision
-      slug = generateSlug(12)
       
-      // Verify new slug is also unique
-      const { data: existingRetry } = await supabase.from("files").select("id").eq("slug", slug).single()
-      if (existingRetry) {
-        // Very rare case - try one more time with longer slug
-        slug = generateSlug(16)
+      // Generate a new random slug to avoid collision with retry loop
+      let attempts = 0
+      const maxAttempts = 5
+      
+      while (attempts < maxAttempts) {
+        slug = generateSlug(12 + attempts * 4) // Increase length with each retry
+        const { data: existingRetry } = await supabase.from("files").select("id").eq("slug", slug).single()
+        
+        if (!existingRetry) {
+          break // Found a unique slug
+        }
+        
+        attempts++
+        
+        if (attempts >= maxAttempts) {
+          console.error("Failed to generate unique slug after max attempts:", { attempts })
+          return NextResponse.json({ error: "Failed to generate unique URL. Please try again." }, { status: 500 })
+        }
       }
     }
 
@@ -149,11 +160,11 @@ export async function POST(request: NextRequest) {
     let expiresAt: string | null = null
     const validExpiryOptions = ["5m", "10m", "1h", "1d", "7d", "never"]
     
+    if (expiry && !validExpiryOptions.includes(expiry)) {
+      return NextResponse.json({ error: "Invalid expiry option" }, { status: 400 })
+    }
+    
     if (expiry && expiry !== "never") {
-      if (!validExpiryOptions.includes(expiry)) {
-        return NextResponse.json({ error: "Invalid expiry option" }, { status: 400 })
-      }
-      
       if (expiry === "5m") {
         expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
       } else if (expiry === "10m") {
