@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
-import { Upload, Lock, Clock, Link, Copy, Check, X, Loader2, FileIcon, Type, BarChart3, Key } from "lucide-react"
+import { Upload, Lock, Clock, Link, Copy, Check, X, Loader2, FileIcon, Type, BarChart3, Key, FolderIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +29,8 @@ export function UploadForm() {
   const [customSlug, setCustomSlug] = useState("")
   const [password, setPassword] = useState("")
   const [expiry, setExpiry] = useState("never")
+  const [folderId, setFolderId] = useState<string>("")
+  const [folders, setFolders] = useState<{ id: string; name: string }[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [result, setResult] = useState<UploadResult | null>(null)
@@ -38,7 +40,21 @@ export function UploadForm() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      if (data.user) {
+        // Fetch user's folders
+        fetch("/api/folders")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.folders) {
+              // Flatten all folders (we'll show all folders, not just root level)
+              setFolders(data.folders)
+            }
+          })
+          .catch(console.error)
+      }
+    })
   }, [])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -72,6 +88,7 @@ export function UploadForm() {
     if (title) formData.append("title", title)
     if (customSlug) formData.append("slug", customSlug)
     if (password) formData.append("password", password)
+    if (folderId) formData.append("folder_id", folderId)
     formData.append("expiry", expiry)
 
     try {
@@ -290,6 +307,27 @@ export function UploadForm() {
             className="h-12 text-base"
           />
         </div>
+
+        {user && folders.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="folder" className="flex items-center gap-2 text-sm font-medium">
+              <FolderIcon className="w-4 h-4 text-primary" /> Folder
+            </Label>
+            <Select value={folderId} onValueChange={setFolderId}>
+              <SelectTrigger id="folder" className="h-12 text-base">
+                <SelectValue placeholder="Select folder (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Root (No folder)</SelectItem>
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">

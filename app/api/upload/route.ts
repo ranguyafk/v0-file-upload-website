@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     const customSlug = formData.get("slug") as string | null
     const password = formData.get("password") as string | null
     const expiry = formData.get("expiry") as string | null
+    const folderId = formData.get("folder_id") as string | null
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
       owner_token: ownerToken,
       view_count: 0,
       user_id: user?.id || null,
+      folder_id: folderId || null,
     })
 
     if (dbError) {
