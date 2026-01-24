@@ -135,14 +135,15 @@ async function main() {
   
   // Check environment variables
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
     console.error('\n❌ Error: Missing environment variables');
     console.error('\nRequired:');
     console.error('  - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL');
-    console.error('  - SUPABASE_SERVICE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    console.error('\nPlease set these environment variables and try again.');
+    console.error('  - SUPABASE_SERVICE_KEY (required for admin operations)');
+    console.error('\nNote: SUPABASE_SERVICE_KEY must be set for migration management.');
+    console.error('      Do NOT use NEXT_PUBLIC_SUPABASE_ANON_KEY as it has insufficient permissions.');
     process.exit(1);
   }
   

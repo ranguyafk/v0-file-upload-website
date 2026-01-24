@@ -157,7 +157,9 @@ export async function checkMigrationStatus(
     }
 
     // Check 005-ensure-folder-id-column (optional validation)
-    // This is essentially the same as 004 but it's a verification step
+    // This migration is essentially a verification of migration 004
+    // It doesn't add new functionality, just validates that folder_id exists
+    // We mark it as applied if migration 004 is applied, since they're dependent
     migrations[4].isApplied = migrations[3].isApplied
     if (migrations[4].isApplied) {
       appliedMigrations.push(migrations[4])

@@ -5,7 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit"
 import { hashPassword } from "@/lib/utils/password"
 import { generateSlug, isValidSlug } from "@/lib/utils/slug"
 import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
-import { checkColumnExists, getSchemaErrorMessage } from "@/lib/schema-verification"
+import { checkColumnExists } from "@/lib/schema-verification"
 import { checkMigrationStatus, getMigrationErrorMessage } from "@/lib/db-migrations"
 import { randomBytes } from "crypto"
 

@@ -28,12 +28,15 @@ export async function GET(request: NextRequest) {
     const migrationStatus = await checkMigrationStatus(supabase)
 
     // Get user for admin check
+    // Note: This is a simple check - in production, you may want to implement
+    // proper role-based access control to restrict detailed migration info
+    // to users with specific admin roles
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
     // Return different levels of detail based on authentication
-    // Admins (authenticated users) get full details
+    // Authenticated users get detailed info (assumes they are admins/developers)
     // Public users get simplified message
     const isAdmin = !!user
 
