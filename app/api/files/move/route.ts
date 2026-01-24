@@ -37,7 +37,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify file belongs to user
-    const { data: file } = await supabase.from("files").select("id, user_id").eq("id", file_id).single()
+    const { data: file, error: fileError } = await supabase.from("files").select("id, user_id").eq("id", file_id).single()
+
+    if (fileError) {
+      console.error("Error fetching file:", {
+        error: fileError,
+        fileId: file_id,
+        userId: user.id,
+      })
+      return NextResponse.json({ error: "Failed to verify file" }, { status: 500 })
+    }
 
     if (!file) {
       return NextResponse.json({ error: "File not found" }, { status: 404 })
@@ -49,7 +58,20 @@ export async function POST(request: NextRequest) {
 
     // If folder_id is provided, verify it exists and belongs to user
     if (folder_id) {
-      const { data: folder } = await supabase.from("folders").select("id, user_id").eq("id", folder_id).single()
+      const { data: folder, error: folderError } = await supabase
+        .from("folders")
+        .select("id, user_id")
+        .eq("id", folder_id)
+        .single()
+
+      if (folderError) {
+        console.error("Error fetching folder:", {
+          error: folderError,
+          folderId: folder_id,
+          userId: user.id,
+        })
+        return NextResponse.json({ error: "Failed to verify folder" }, { status: 500 })
+      }
 
       if (!folder) {
         return NextResponse.json({ error: "Folder not found" }, { status: 404 })
@@ -68,13 +90,28 @@ export async function POST(request: NextRequest) {
       .eq("user_id", user.id)
 
     if (error) {
-      console.error("Move file error:", error)
-      return NextResponse.json({ error: "Failed to move file" }, { status: 500 })
+      console.error("Move file error:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        fileId: file_id,
+        folderId: folder_id,
+        userId: user.id,
+      })
+      return NextResponse.json(
+        { error: `Failed to move file: ${error.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Move file error:", error)
+    console.error("Move file error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to move file" }, { status: 500 })
   }
 }

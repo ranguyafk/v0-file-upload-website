@@ -32,13 +32,24 @@ export async function GET(request: NextRequest) {
     const { data: folders, error } = await query
 
     if (error) {
-      console.error("Fetch folders error:", error)
+      console.error("Fetch folders error:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        userId: user.id,
+        parentId,
+      })
       return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 })
     }
 
     return NextResponse.json({ folders })
   } catch (error) {
-    console.error("Fetch folders error:", error)
+    console.error("Fetch folders error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 })
   }
 }
@@ -87,7 +98,13 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (parentError || !parentFolder) {
-        console.error("Parent folder validation error:", parentError)
+        console.error("Parent folder validation error:", {
+          error: parentError,
+          code: parentError?.code,
+          message: parentError?.message,
+          parentId,
+          userId: user.id,
+        })
         return NextResponse.json({ error: "Invalid parent folder or parent folder not found" }, { status: 400 })
       }
     }
@@ -106,13 +123,29 @@ export async function POST(request: NextRequest) {
       if (error.code === "23505") {
         return NextResponse.json({ error: "A folder with this name already exists here" }, { status: 409 })
       }
-      console.error("Create folder error:", error)
-      return NextResponse.json({ error: "Failed to create folder" }, { status: 500 })
+      console.error("Create folder error:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        folderName: name,
+        userId: user.id,
+        parentId: parent_id,
+      })
+      return NextResponse.json(
+        { error: `Failed to create folder: ${error.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ folder })
   } catch (error) {
-    console.error("Create folder error:", error)
+    console.error("Create folder error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to create folder" }, { status: 500 })
   }
 }

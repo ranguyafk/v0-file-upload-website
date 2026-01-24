@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     const { allowed, remaining } = await checkRateLimit(ip, "upload")
     if (!allowed) {
+      console.error("Rate limit exceeded:", { ip, action: "upload" })
       return NextResponse.json(
         { error: "Rate limit exceeded. Try again later." },
         { status: 429, headers: { "X-RateLimit-Remaining": "0" } },
@@ -87,22 +88,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Vercel Blob
-    const blob = await put(`files/${slug}/${file.name}`, file, {
-      access: "public",
-    })
+    let blob
+    try {
+      blob = await put(`files/${slug}/${file.name}`, file, {
+        access: "public",
+      })
+    } catch (blobError) {
+      console.error("Blob upload error:", {
+        error: blobError,
+        fileName: file.name,
+        fileSize: file.size,
+        slug,
+        userId: user?.id,
+      })
+      return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 })
+    }
 
     // Calculate expiry time
     let expiresAt: string | null = null
-    if (expiry === "5m") {
-      expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    } else if (expiry === "10m") {
-      expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
-    } else if (expiry === "1h") {
-      expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
-    } else if (expiry === "1d") {
-      expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    } else if (expiry === "7d") {
-      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const validExpiryOptions = ["5m", "10m", "1h", "1d", "7d", "never"]
+    
+    if (expiry && expiry !== "never") {
+      if (!validExpiryOptions.includes(expiry)) {
+        return NextResponse.json({ error: "Invalid expiry option" }, { status: 400 })
+      }
+      
+      if (expiry === "5m") {
+        expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      } else if (expiry === "10m") {
+        expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      } else if (expiry === "1h") {
+        expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+      } else if (expiry === "1d") {
+        expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      } else if (expiry === "7d") {
+        expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }
     }
 
     // Hash password if provided
@@ -127,8 +148,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (dbError) {
-      console.error("Database error:", dbError)
-      return NextResponse.json({ error: "Failed to save file metadata" }, { status: 500 })
+      console.error("Database error:", {
+        error: dbError,
+        code: dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint,
+        fileName: file.name,
+        slug,
+        userId: user?.id,
+        folderId,
+      })
+      return NextResponse.json(
+        { error: `Failed to save file metadata: ${dbError.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
@@ -143,7 +177,11 @@ export async function POST(request: NextRequest) {
       ownerToken,
     })
   } catch (error) {
-    console.error("Upload error:", error)
+    console.error("Upload error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }
