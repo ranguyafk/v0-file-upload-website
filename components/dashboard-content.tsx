@@ -1,27 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { PhotoGrid } from "@/components/photo-grid"
+import { FileList } from "@/components/file-list"
+import { SelectionToolbar } from "@/components/selection-toolbar"
+import { PreviewModal } from "@/components/preview-modal"
 import {
   Upload,
   LogOut,
   FileIcon,
-  Eye,
-  Download,
-  Trash2,
-  Clock,
-  Lock,
-  BarChart3,
   Crown,
   Loader2,
-  ExternalLink,
-  Copy,
-  Check,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
+import { toast } from "sonner"
 
 interface Profile {
   id: string
@@ -38,6 +37,8 @@ interface FileRecord {
   title: string | null
   filename: string
   file_size: number
+  file_type: string
+  file_url: string
   view_count: number
   download_count: number
   expires_at: string | null
@@ -57,8 +58,44 @@ export function DashboardContent({
 }) {
   const router = useRouter()
   const [loggingOut, setLoggingOut] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [activeTab, setActiveTab] = useState<"photos" | "files">("photos")
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+
+  // Classify files into photos and non-photos
+  const { photos, otherFiles } = useMemo(() => {
+    const photos: FileRecord[] = []
+    const otherFiles: FileRecord[] = []
+    
+    files.forEach((file) => {
+      if (file.file_type && file.file_type.startsWith("image/")) {
+        photos.push(file)
+      } else {
+        otherFiles.push(file)
+      }
+    })
+    
+    return { photos, otherFiles }
+  }, [files])
+
+  const selectionMode = selectedIds.size > 0
+
+  const handleToggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
 
   const handleLogout = async () => {
     setLoggingOut(true)
@@ -67,29 +104,71 @@ export function DashboardContent({
     router.push("/")
   }
 
-  const handleDelete = async (slug: string, ownerToken: string) => {
-    if (!confirm("Are you sure you want to delete this file?")) return
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    
+    const count = selectedIds.size
+    if (!confirm(`Are you sure you want to delete ${count} ${count === 1 ? "file" : "files"}?`)) return
 
-    setDeletingId(slug)
+    setIsDeleting(true)
+    const selectedFiles = files.filter((f) => selectedIds.has(f.id))
+    
     try {
-      const res = await fetch(`/api/file/${slug}?token=${ownerToken}`, {
-        method: "DELETE",
-      })
-      if (res.ok) {
-        router.refresh()
-      }
+      // Delete each file using existing endpoint
+      const deletePromises = selectedFiles.map((file) =>
+        fetch(`/api/file/${file.slug}?token=${file.owner_token}`, {
+          method: "DELETE",
+        })
+      )
+      
+      await Promise.all(deletePromises)
+      toast.success(`Deleted ${count} ${count === 1 ? "file" : "files"}`)
+      handleClearSelection()
+      router.refresh()
     } catch (error) {
-      console.error("Delete error:", error)
+      console.error("Bulk delete error:", error)
+      toast.error("Failed to delete some files")
     } finally {
-      setDeletingId(null)
+      setIsDeleting(false)
     }
   }
 
-  const copyLink = async (slug: string) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/${slug}`)
-    setCopiedSlug(slug)
-    setTimeout(() => setCopiedSlug(null), 2000)
+  const handleCopyLinks = () => {
+    if (selectedIds.size === 0) return
+    
+    const selectedFiles = files.filter((f) => selectedIds.has(f.id))
+    const links = selectedFiles.map((f) => `${window.location.origin}/${f.slug}`).join("\n")
+    
+    navigator.clipboard.writeText(links)
+    toast.success(`Copied ${selectedIds.size} ${selectedIds.size === 1 ? "link" : "links"}`)
+    handleClearSelection()
   }
+
+  const handleDownload = () => {
+    if (selectedIds.size === 0) return
+    
+    const selectedFiles = files.filter((f) => selectedIds.has(f.id))
+    
+    // Open each file URL (browser will handle downloads)
+    selectedFiles.forEach((file) => {
+      window.open(file.file_url, "_blank")
+    })
+    
+    toast.success(`Opening ${selectedIds.size} ${selectedIds.size === 1 ? "file" : "files"}`)
+    handleClearSelection()
+  }
+
+  const handlePreview = useCallback((index: number) => {
+    setPreviewIndex(index)
+  }, [])
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewIndex(null)
+  }, [])
+
+  const handleNavigatePreview = useCallback((index: number) => {
+    setPreviewIndex(index)
+  }, [])
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`
@@ -110,7 +189,7 @@ export function DashboardContent({
   const isPro = plan === "pro" || plan === "enterprise"
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background pb-20 md:pb-0">
       <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Header */}
         <div className="flex flex-col gap-4 mb-6 md:mb-8">
@@ -164,93 +243,98 @@ export function DashboardContent({
           )}
         </div>
 
-        {/* Files List */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="p-4 border-b border-border bg-muted/30">
-            <h2 className="font-semibold text-sm md:text-base text-foreground">Your Files ({files.length})</h2>
-          </div>
-
-          {files.length === 0 ? (
-            <div className="p-8 md:p-12 text-center">
-              <FileIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm md:text-base text-muted-foreground mb-4">No files uploaded yet</p>
-              <Button asChild className="touch-target active-scale">
-                <Link href="/">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Your First File
-                </Link>
-              </Button>
+        {/* Files Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "photos" | "files")} className="w-full">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-border bg-muted/30">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-sm md:text-base text-foreground">Your Files ({files.length})</h2>
+              </div>
+              
+              <TabsList className="w-full md:w-auto">
+                <TabsTrigger value="photos" className="flex-1 md:flex-none touch-target">
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                  Photos ({photos.length})
+                </TabsTrigger>
+                <TabsTrigger value="files" className="flex-1 md:flex-none touch-target">
+                  <FileIcon className="w-4 h-4 mr-2" />
+                  Files ({otherFiles.length})
+                </TabsTrigger>
+              </TabsList>
             </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {files.map((file) => (
-                <div key={file.id} className="p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <FileIcon className="w-4 h-4 text-primary flex-shrink-0" />
-                        <p className="font-medium text-sm md:text-base text-foreground truncate">{file.title || file.filename}</p>
-                        {file.password_hash && <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                        {file.expires_at && <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                      </div>
-                      <p className="text-xs md:text-sm text-muted-foreground">
-                        /{file.slug} &middot; {formatSize(file.file_size)} &middot; {formatDate(file.created_at)}
-                      </p>
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 md:gap-6 text-xs md:text-sm">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Eye className="w-4 h-4" />
-                          <span>{file.view_count}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Download className="w-4 h-4" />
-                          <span>{file.download_count}</span>
-                        </div>
-                      </div>
+            {/* Selection Toolbar */}
+            <SelectionToolbar
+              selectedCount={selectedIds.size}
+              onCopyLinks={handleCopyLinks}
+              onDownload={handleDownload}
+              onDelete={handleBulkDelete}
+              onClearSelection={handleClearSelection}
+              isDeleting={isDeleting}
+            />
 
-                      <div className="flex items-center gap-1 md:gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => copyLink(file.slug)} title="Copy link" className="h-9 w-9 md:h-8 md:w-8 active-scale">
-                          {copiedSlug === file.slug ? (
-                            <Check className="w-4 h-4 text-primary" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button variant="ghost" size="icon" asChild title="View file" className="h-9 w-9 md:h-8 md:w-8 active-scale">
-                          <Link href={`/${file.slug}`} target="_blank">
-                            <ExternalLink className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" asChild title="Analytics" className="h-9 w-9 md:h-8 md:w-8 active-scale">
-                          <Link href={`/${file.slug}/analytics?token=${file.owner_token}`}>
-                            <BarChart3 className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(file.slug, file.owner_token)}
-                          disabled={deletingId === file.slug}
-                          className="text-destructive hover:text-destructive h-9 w-9 md:h-8 md:w-8 active-scale"
-                          title="Delete"
-                        >
-                          {deletingId === file.slug ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+            {/* Photos Tab */}
+            <TabsContent value="photos" className="mt-0">
+              {photos.length === 0 ? (
+                <div className="p-8 md:p-12 text-center">
+                  <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm md:text-base text-muted-foreground mb-4">No photos uploaded yet</p>
+                  <Button asChild className="touch-target active-scale">
+                    <Link href="/">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Your First Photo
+                    </Link>
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              ) : (
+                <div className="p-4">
+                  <PhotoGrid
+                    photos={photos}
+                    selectedIds={selectedIds}
+                    onToggleSelection={handleToggleSelection}
+                    onPreview={handlePreview}
+                    selectionMode={selectionMode}
+                  />
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Files Tab */}
+            <TabsContent value="files" className="mt-0">
+              {otherFiles.length === 0 ? (
+                <div className="p-8 md:p-12 text-center">
+                  <FileIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm md:text-base text-muted-foreground mb-4">No files uploaded yet</p>
+                  <Button asChild className="touch-target active-scale">
+                    <Link href="/">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Your First File
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <FileList
+                  files={otherFiles}
+                  selectedIds={selectedIds}
+                  onToggleSelection={handleToggleSelection}
+                  selectionMode={selectionMode}
+                />
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
+
+      {/* Preview Modal */}
+      {previewIndex !== null && (
+        <PreviewModal
+          isOpen={true}
+          onClose={handleClosePreview}
+          images={photos}
+          currentIndex={previewIndex}
+          onNavigate={handleNavigatePreview}
+        />
+      )}
     </main>
   )
 }
