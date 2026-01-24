@@ -65,10 +65,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate or generate slug
-    let slug = customSlug?.trim() || generateSlug()
     if (customSlug && !isValidSlug(customSlug)) {
-      return NextResponse.json({ error: "Invalid custom URL. Use 3-32 alphanumeric characters." }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid custom URL. Use 3-32 characters (letters, numbers, underscores, and dashes)." },
+        { status: 400 },
+      )
     }
+    let slug = customSlug?.trim() || generateSlug()
 
     const supabase = await createClient()
 
