@@ -50,8 +50,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       if (error.code === "23505") {
         return NextResponse.json({ error: "A folder with this name already exists here" }, { status: 409 })
       }
-      console.error("Rename folder error:", error)
-      return NextResponse.json({ error: "Failed to rename folder" }, { status: 500 })
+      console.error("Rename folder error:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        folderId: id,
+        userId: user.id,
+        newName: name,
+      })
+      return NextResponse.json(
+        { error: `Failed to rename folder: ${error.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     if (!folder) {
@@ -60,7 +71,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     return NextResponse.json({ folder })
   } catch (error) {
-    console.error("Rename folder error:", error)
+    console.error("Rename folder error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to rename folder" }, { status: 500 })
   }
 }
@@ -85,7 +100,20 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Check if folder has subfolders
-    const { data: subfolders } = await supabase.from("folders").select("id").eq("parent_id", id).limit(1)
+    const { data: subfolders, error: subfoldersError } = await supabase
+      .from("folders")
+      .select("id")
+      .eq("parent_id", id)
+      .limit(1)
+
+    if (subfoldersError) {
+      console.error("Error checking subfolders:", {
+        error: subfoldersError,
+        folderId: id,
+        userId: user.id,
+      })
+      return NextResponse.json({ error: "Failed to verify folder status" }, { status: 500 })
+    }
 
     if (subfolders && subfolders.length > 0) {
       return NextResponse.json(
@@ -95,7 +123,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Check if folder has files
-    const { data: files } = await supabase.from("files").select("id").eq("folder_id", id).limit(1)
+    const { data: files, error: filesError } = await supabase.from("files").select("id").eq("folder_id", id).limit(1)
+
+    if (filesError) {
+      console.error("Error checking files:", {
+        error: filesError,
+        folderId: id,
+        userId: user.id,
+      })
+      return NextResponse.json({ error: "Failed to verify folder status" }, { status: 500 })
+    }
 
     if (files && files.length > 0) {
       return NextResponse.json({ error: "Cannot delete folder with files. Move or delete files first." }, { status: 400 })
@@ -104,13 +141,27 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error } = await supabase.from("folders").delete().eq("id", id).eq("user_id", user.id)
 
     if (error) {
-      console.error("Delete folder error:", error)
-      return NextResponse.json({ error: "Failed to delete folder" }, { status: 500 })
+      console.error("Delete folder error:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        folderId: id,
+        userId: user.id,
+      })
+      return NextResponse.json(
+        { error: `Failed to delete folder: ${error.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Delete folder error:", error)
+    console.error("Delete folder error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Failed to delete folder" }, { status: 500 })
   }
 }

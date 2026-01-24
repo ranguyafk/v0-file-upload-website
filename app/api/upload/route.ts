@@ -11,11 +11,23 @@ const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate required environment variables
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error("Missing Supabase environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("Missing Vercel Blob storage token")
+      return NextResponse.json({ error: "Storage service not configured" }, { status: 500 })
+    }
+
     const ip = request.headers.get("x-forwarded-for") || "unknown"
 
     // Rate limiting
     const { allowed, remaining } = await checkRateLimit(ip, "upload")
     if (!allowed) {
+      console.error("Rate limit exceeded:", { ip, action: "upload" })
       return NextResponse.json(
         { error: "Rate limit exceeded. Try again later." },
         { status: 429, headers: { "X-RateLimit-Remaining": "0" } },
@@ -40,15 +52,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
+    if (!file.name || file.name.trim().length === 0) {
+      return NextResponse.json({ error: "File must have a valid name" }, { status: 400 })
+    }
+
+    if (file.size === 0) {
+      return NextResponse.json({ error: "File is empty" }, { status: 400 })
+    }
+
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: "File too large. Maximum size is 1GB." }, { status: 400 })
     }
 
     // Validate or generate slug
-    let slug = customSlug?.trim() || generateSlug()
     if (customSlug && !isValidSlug(customSlug)) {
-      return NextResponse.json({ error: "Invalid custom URL. Use 3-32 alphanumeric characters." }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid custom URL. Use 3-32 characters (letters, numbers, underscores, and dashes)." },
+        { status: 400 },
+      )
     }
+    let slug = customSlug?.trim() || generateSlug()
 
     const supabase = await createClient()
 
@@ -71,38 +94,91 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (folderError || !folder) {
-        console.error("Folder validation error:", folderError)
+        console.error("Folder validation error:", {
+          error: folderError,
+          code: folderError?.code,
+          message: folderError?.message,
+          folderId,
+          userId: user.id,
+        })
         return NextResponse.json({ error: "Invalid folder or folder not found" }, { status: 400 })
       }
     }
 
     // Check if slug is taken
-    const { data: existing } = await supabase.from("files").select("id").eq("slug", slug).single()
+    const { data: existing, error: slugError } = await supabase.from("files").select("id").eq("slug", slug).single()
+
+    if (slugError && slugError.code !== "PGRST116") {
+      // PGRST116 is "not found" which is expected
+      console.error("Slug check error:", {
+        error: slugError,
+        slug,
+      })
+    }
 
     if (existing) {
       if (customSlug) {
         return NextResponse.json({ error: "This custom URL is already taken." }, { status: 409 })
       }
-      slug = generateSlug(12)
+      
+      // Generate a new random slug to avoid collision with retry loop
+      let attempts = 0
+      const maxAttempts = 5
+      
+      while (attempts < maxAttempts) {
+        slug = generateSlug(12 + attempts * 4) // Increase length with each retry
+        const { data: existingRetry } = await supabase.from("files").select("id").eq("slug", slug).single()
+        
+        if (!existingRetry) {
+          break // Found a unique slug
+        }
+        
+        attempts++
+        
+        if (attempts >= maxAttempts) {
+          console.error("Failed to generate unique slug after max attempts:", { attempts })
+          return NextResponse.json({ error: "Failed to generate unique URL. Please try again." }, { status: 500 })
+        }
+      }
     }
 
     // Upload to Vercel Blob
-    const blob = await put(`files/${slug}/${file.name}`, file, {
-      access: "public",
-    })
+    let blob
+    try {
+      blob = await put(`files/${slug}/${file.name}`, file, {
+        access: "public",
+      })
+    } catch (blobError) {
+      console.error("Blob upload error:", {
+        error: blobError,
+        fileName: file.name,
+        fileSize: file.size,
+        slug,
+        userId: user?.id,
+      })
+      return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 })
+    }
 
     // Calculate expiry time
     let expiresAt: string | null = null
-    if (expiry === "5m") {
-      expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    } else if (expiry === "10m") {
-      expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
-    } else if (expiry === "1h") {
-      expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
-    } else if (expiry === "1d") {
-      expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    } else if (expiry === "7d") {
-      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    const validExpiryOptions = ["5m", "10m", "1h", "1d", "7d", "never"]
+    
+    if (expiry && !validExpiryOptions.includes(expiry)) {
+      return NextResponse.json({ error: "Invalid expiry option" }, { status: 400 })
+    }
+    
+    if (expiry && expiry !== "never") {
+      if (expiry === "5m") {
+        expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+      } else if (expiry === "10m") {
+        expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      } else if (expiry === "1h") {
+        expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+      } else if (expiry === "1d") {
+        expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      } else if (expiry === "7d") {
+        expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      }
     }
 
     // Hash password if provided
@@ -127,8 +203,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (dbError) {
-      console.error("Database error:", dbError)
-      return NextResponse.json({ error: "Failed to save file metadata" }, { status: 500 })
+      console.error("Database error:", {
+        error: dbError,
+        code: dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint,
+        fileName: file.name,
+        slug,
+        userId: user?.id,
+        folderId,
+      })
+      return NextResponse.json(
+        { error: `Failed to save file metadata: ${dbError.message || "Unknown database error"}` },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
@@ -143,7 +232,11 @@ export async function POST(request: NextRequest) {
       ownerToken,
     })
   } catch (error) {
-    console.error("Upload error:", error)
+    console.error("Upload error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }
