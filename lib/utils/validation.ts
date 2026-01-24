@@ -11,14 +11,17 @@ export function isValidUUID(uuid: string | null | undefined): boolean {
 
 /**
  * Sanitizes a string for safe storage (removes HTML tags and scripts)
- * For basic protection - consider using a library like DOMPurify for client-side
+ * Returns trimmed string or empty string if input is invalid
  */
-export function sanitizeString(input: string | null | undefined): string | null {
-  if (!input) return null
+export function sanitizeString(input: string | null | undefined): string {
+  if (!input) return ''
   
-  // Remove HTML tags and trim
+  // Remove HTML tags, script content, and javascript: protocols
+  // This is a basic sanitization - for rich text content, use a library like DOMPurify
   return input
-    .replace(/<[^>]*>/g, '')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
     .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
     .trim()
 }

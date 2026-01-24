@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const { data: folder, error } = await supabase
       .from("folders")
-      .update({ name: sanitizeString(name) || name.trim(), updated_at: new Date().toISOString() })
+      .update({ name: sanitizeString(name), updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", user.id)
       .select()

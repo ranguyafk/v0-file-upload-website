@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     const { error: dbError } = await supabase.from("files").insert({
       slug,
-      title: sanitizeString(title?.trim()) || title?.trim() || null,
+      title: title?.trim() ? sanitizeString(title.trim()) : null,
       filename: file.name,
       file_url: blob.url,
       file_size: file.size,
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       slug,
       url: `/${slug}`,
       filename: file.name,
-      title: sanitizeString(title?.trim()) || title?.trim() || null,
+      title: title?.trim() ? sanitizeString(title.trim()) : null,
       size: file.size,
       expiresAt,
       hasPassword: !!password,

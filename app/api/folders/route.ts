@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const { data: folder, error } = await supabase
       .from("folders")
       .insert({
-        name: sanitizeString(name) || name.trim(),
+        name: sanitizeString(name),
         user_id: user.id,
         parent_id: parent_id || null,
       })
