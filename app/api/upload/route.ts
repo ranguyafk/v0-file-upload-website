@@ -4,9 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { hashPassword } from "@/lib/utils/password"
 import { generateSlug, isValidSlug } from "@/lib/utils/slug"
-import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
-import { checkColumnExists } from "@/lib/schema-verification"
-import { checkMigrationStatus, getMigrationErrorMessage } from "@/lib/db-migrations"
+import { sanitizeString } from "@/lib/utils/validation"
 import { randomBytes } from "crypto"
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
     const customSlug = formData.get("slug") as string | null
     const password = formData.get("password") as string | null
     const expiry = formData.get("expiry") as string | null
-    const folderId = formData.get("folder_id") as string | null
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
@@ -77,59 +74,9 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Verify schema before proceeding
-    if (folderId) {
-      const folderIdColumnExists = await checkColumnExists(supabase, "files", "folder_id")
-      if (!folderIdColumnExists) {
-        console.error("Schema validation failed: folder_id column missing from files table")
-        
-        // Get detailed migration status for logging
-        const migrationStatus = await checkMigrationStatus(supabase)
-        console.error("Migration status:", {
-          allApplied: migrationStatus.allApplied,
-          missingMigrations: migrationStatus.missingMigrations.map((m) => m.migrationName),
-        })
-        
-        return NextResponse.json(
-          {
-            error: "The database schema is not up-to-date. File uploads to folders are currently unavailable. Please contact the administrator.",
-            adminMessage: getMigrationErrorMessage(migrationStatus.missingMigrations),
-            migrationEndpoint: "/api/health/migrations",
-          },
-          { status: 503 },
-        )
-      }
-    }
-
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
-    // Validate folder_id format if provided
-    if (folderId && !isValidUUID(folderId)) {
-      return NextResponse.json({ error: "Invalid folder ID format" }, { status: 400 })
-    }
-
-    // If folder_id is provided, verify it exists and belongs to user
-    if (folderId && user) {
-      const { data: folder, error: folderError } = await supabase
-        .from("folders")
-        .select("id, user_id")
-        .eq("id", folderId)
-        .eq("user_id", user.id)
-        .single()
-
-      if (folderError || !folder) {
-        console.error("Folder validation error:", {
-          error: folderError,
-          code: folderError?.code,
-          message: folderError?.message,
-          folderId,
-          userId: user.id,
-        })
-        return NextResponse.json({ error: "Invalid folder or folder not found" }, { status: 400 })
-      }
-    }
 
     // Check if slug is taken
     const { data: existing, error: slugError } = await supabase.from("files").select("id").eq("slug", slug).single()
@@ -225,7 +172,6 @@ export async function POST(request: NextRequest) {
       owner_token: ownerToken,
       view_count: 0,
       user_id: user?.id || null,
-      folder_id: folderId || null,
     })
 
     if (dbError) {
@@ -238,28 +184,7 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         slug,
         userId: user?.id,
-        folderId,
       })
-
-      // Check for schema-related errors
-      const errorMessage = dbError.message.toLowerCase()
-      if (errorMessage.includes("folder_id") && errorMessage.includes("column")) {
-        // Get detailed migration status for better error reporting
-        const migrationStatus = await checkMigrationStatus(supabase)
-        console.error("Schema error during file insert - migration status:", {
-          allApplied: migrationStatus.allApplied,
-          missingMigrations: migrationStatus.missingMigrations.map((m) => m.migrationName),
-        })
-        
-        return NextResponse.json(
-          {
-            error: "Unable to save file due to database schema issues. Please contact the administrator.",
-            adminMessage: getMigrationErrorMessage(migrationStatus.missingMigrations),
-            migrationEndpoint: "/api/health/migrations",
-          },
-          { status: 503 },
-        )
-      }
 
       return NextResponse.json(
         { error: `Failed to save file metadata: ${dbError.message || "Unknown database error"}` },
