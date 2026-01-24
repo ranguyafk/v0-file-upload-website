@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { hashPassword } from "@/lib/utils/password"
 import { generateSlug, isValidSlug } from "@/lib/utils/slug"
+import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
 import { randomBytes } from "crypto"
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024 // 1GB
@@ -54,6 +55,11 @@ export async function POST(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+
+    // Validate folder_id format if provided
+    if (folderId && !isValidUUID(folderId)) {
+      return NextResponse.json({ error: "Invalid folder ID format" }, { status: 400 })
+    }
 
     // If folder_id is provided, verify it exists and belongs to user
     if (folderId && user) {
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     const { error: dbError } = await supabase.from("files").insert({
       slug,
-      title: title?.trim() || null,
+      title: sanitizeString(title?.trim()) || title?.trim() || null,
       filename: file.name,
       file_url: blob.url,
       file_size: file.size,
@@ -130,7 +136,7 @@ export async function POST(request: NextRequest) {
       slug,
       url: `/${slug}`,
       filename: file.name,
-      title: title?.trim() || null,
+      title: sanitizeString(title?.trim()) || title?.trim() || null,
       size: file.size,
       expiresAt,
       hasPassword: !!password,

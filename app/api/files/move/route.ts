@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { isValidUUID } from "@/lib/utils/validation"
 
 // POST - Move file to folder
 export async function POST(request: NextRequest) {
@@ -24,6 +25,15 @@ export async function POST(request: NextRequest) {
 
     if (!file_id) {
       return NextResponse.json({ error: "File ID is required" }, { status: 400 })
+    }
+
+    // Validate ID formats
+    if (!isValidUUID(file_id)) {
+      return NextResponse.json({ error: "Invalid file ID format" }, { status: 400 })
+    }
+
+    if (folder_id && !isValidUUID(folder_id)) {
+      return NextResponse.json({ error: "Invalid folder ID format" }, { status: 400 })
     }
 
     // Verify file belongs to user

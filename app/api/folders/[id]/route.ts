@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
 
 // PATCH - Rename folder
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
@@ -14,6 +15,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const { id } = params
+    
+    // Validate ID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid folder ID format" }, { status: 400 })
+    }
+    
     let body
     try {
       body = await request.json()
@@ -33,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const { data: folder, error } = await supabase
       .from("folders")
-      .update({ name: name.trim(), updated_at: new Date().toISOString() })
+      .update({ name: sanitizeString(name) || name.trim(), updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", user.id)
       .select()
@@ -71,6 +78,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const { id } = params
+
+    // Validate ID format
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid folder ID format" }, { status: 400 })
+    }
 
     // Check if folder has subfolders
     const { data: subfolders } = await supabase.from("folders").select("id").eq("parent_id", id).limit(1)
