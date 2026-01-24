@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { isValidUUID, sanitizeString } from "@/lib/utils/validation"
+import { checkMigrationStatus, getMigrationErrorMessage } from "@/lib/db-migrations"
 
 // GET - List folders for a user
 export async function GET(request: NextRequest) {
@@ -46,6 +47,26 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         parentId,
       })
+      
+      // Check for schema-related errors
+      const errorMessage = error.message.toLowerCase()
+      if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
+        const migrationStatus = await checkMigrationStatus(supabase)
+        console.error("Schema error - folders table missing. Migration status:", {
+          allApplied: migrationStatus.allApplied,
+          missingMigrations: migrationStatus.missingMigrations.map((m) => m.migrationName),
+        })
+        
+        return NextResponse.json(
+          {
+            error: "Folder functionality is currently unavailable due to database schema issues. Please contact the administrator.",
+            adminMessage: getMigrationErrorMessage(migrationStatus.missingMigrations),
+            migrationEndpoint: "/api/health/migrations",
+          },
+          { status: 503 },
+        )
+      }
+      
       return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 })
     }
 
@@ -135,6 +156,7 @@ export async function POST(request: NextRequest) {
       if (error.code === "23505") {
         return NextResponse.json({ error: "A folder with this name already exists here" }, { status: 409 })
       }
+      
       console.error("Create folder error:", {
         error,
         code: error.code,
@@ -145,6 +167,26 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         parentId: parent_id,
       })
+      
+      // Check for schema-related errors
+      const errorMessage = error.message.toLowerCase()
+      if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
+        const migrationStatus = await checkMigrationStatus(supabase)
+        console.error("Schema error - folders table missing. Migration status:", {
+          allApplied: migrationStatus.allApplied,
+          missingMigrations: migrationStatus.missingMigrations.map((m) => m.migrationName),
+        })
+        
+        return NextResponse.json(
+          {
+            error: "Unable to create folder due to database schema issues. Please contact the administrator.",
+            adminMessage: getMigrationErrorMessage(migrationStatus.missingMigrations),
+            migrationEndpoint: "/api/health/migrations",
+          },
+          { status: 503 },
+        )
+      }
+      
       return NextResponse.json(
         { error: `Failed to create folder: ${error.message || "Unknown database error"}` },
         { status: 500 },
