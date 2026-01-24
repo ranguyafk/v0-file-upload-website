@@ -90,6 +90,8 @@ export function PhotoGrid({
           >
             {/* Image container */}
             <div className="relative w-full h-full overflow-hidden rounded-lg bg-muted border border-border">
+              {/* Using regular img tag instead of Next.js Image because files are from 
+                  external Vercel Blob storage and Image component requires known dimensions */}
               <img
                 src={photo.file_url}
                 alt={photo.title || photo.filename}

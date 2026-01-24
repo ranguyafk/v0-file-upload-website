@@ -130,6 +130,8 @@ export function PreviewModal({ isOpen, onClose, images, currentIndex, onNavigate
             onTouchEnd={handleTouchEnd}
           >
             <div className="relative w-full h-full flex items-center justify-center">
+              {/* Using regular img tag instead of Next.js Image because files are from 
+                  external Vercel Blob storage with unknown dimensions at build time */}
               <img
                 src={currentImage.file_url}
                 alt={currentImage.title || currentImage.filename}

@@ -149,9 +149,13 @@ export function DashboardContent({
     
     const selectedFiles = files.filter((f) => selectedIds.has(f.id))
     
-    // Open each file URL (browser will handle downloads)
-    selectedFiles.forEach((file) => {
-      window.open(file.file_url, "_blank")
+    // Note: Opening multiple tabs may trigger popup blockers in some browsers
+    // Users should allow popups for this site or download files one at a time
+    selectedFiles.forEach((file, index) => {
+      // Delay each download slightly to reduce popup blocker issues
+      setTimeout(() => {
+        window.open(file.file_url, "_blank")
+      }, index * 100)
     })
     
     toast.success(`Opening ${selectedIds.size} ${selectedIds.size === 1 ? "file" : "files"}`)
